@@ -2,39 +2,49 @@ library("igraph")
 
 #source("igraphManuale.R")
 
-#################################################################################
-# una guida ad IGraph, che permette di fare quello che fanno Centiscape e Pesca #
-#################################################################################
+##################################################################
+# using IGraph to mimic Centiscape and Pesca, two Cytoscape apps #
+##################################################################
 
-#questa funzione permette di trovare i nodi che fanno parte degli short paths di interesse, quando vogliamo unire due componenti
+# this function allows to find nodes that belong
+# to those shortest paths connecting two components
+# input is a reference network and a list of edges
 findNodesInPaths <- function(refNet, edgelist) {
 
-	#un array vuoto
-	nodes <- array()
-	#quanti percorsi ho trovato?
+	# declare empty vector
+	nodes <- vector()
+	# how many paths are in the edgelist?
 	nPaths <- length(edgelist)
-	#per ogni percorso
+	# for each path
 	for(i in 1:nPaths){
-		#trovo il nome dei nodi coinvolti
-		nodes <- c(nodes,V(refNet)$name[unlist(edgelist[[i]])])
+		# find nodes names
+		nodes <- append(nodes, V(refNet)$name[unlist(edgelist[[i]])])
 	}
-	#e ritorno i valori che occorrono una volta sola, trovati nella lista meno il primo elemento, che è sempre vuoto!
+	# return unique nodes in the shortest paths
 	return(unique(nodes[-1]))
 }
 
+# find first neighbours for a set of nodes, i.e. the probe
+# in the specified network
 firstNeighbours <- function(network, probe) {
+	# find first neighbours
 	first <- induced.subgraph(network, unlist(neighborhood(network, order=1, probe)))
 	return(first)
 }
 
-#questa funzione mi serve per trovare tutti i nodi che non sono connessi all'interno di una rete
-#viene usata dopo un "decompose"
+# this function is used to find all nodes in a network
+# that are disconnected, i.e. do not have neighbours
+# it is used after running `decompose` on a network
 findNotConnectedNodes <- function(decomposednet) {
-	#quante componenti non connesse ci sono?
+	# how many disconnected components are there?
 	cmps <- length(decomposednet)
-	#creo array vuoto a cui devo rimuovere la posizione uno, alla fine!
-	notConnected <- array()
-	#per ciascuna di esse, a partire dalla seconda (assumo che la prima sia la più grande)
+	# declare empty vector
+	notConnected <- vector()
+
+	# TODO FIND BIGGEST COMPONENT AND RETURN THE OTHERS!!!!!!!!!!!!!!!!
+
+	# THIS IS NOT USING THE FIRST COMPONENT ASSUMING THAT'S THE BIGGEST ONE.
+	# BUT IS THIS ALWAYS TRUE??
 	for (i in 2:cmps) {
 		notConnected <- c(notConnected, V(decomposednet[[i]])$name)
 	}
@@ -140,22 +150,6 @@ connectIsolated <- function(referenceNet, probe) {
 #powerCentrality	Find Bonacich Power Centrality Scores of Network Positions
 #subgraph.centrality	Find subgraph centrality scores of network positions
 
-
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-
-##############
-# Gabriele T #
-# 29 07 2016 #
-##############
-
-#utilities for network analysis
-
 #network is the graph we want to weigh in order to perform the simulation
 #simulations is the number of networks the function will generate
 #[valMin-valMax] is the range in between the weight vectors will be generated
@@ -164,8 +158,8 @@ connectIsolated <- function(referenceNet, probe) {
 #the idea behind the algorithm: simulate a network with different topologies that depends from a weights vector that gives a multiplication factor to each node
 
 #how it works:
-#rgSim: for each simulation a weight array is randomly created in between a range defined by the user. the number of simulation is also defined by the user. the input network is also defined by the user. it can be both directed and undirected
-#addEdges: starting from the network and a random array, the edgelist is visited: for each node the algorithm performs a loop for each copy the node has: the node 1 has 0 copies: 0 loops, the node 4 has 3 copies: 3 loops. For each loop a new node is added and a new set of edges is created. First the algorithm finds the position of the original node in the edge list. This step permits to get the neighbors of the original node that will be neighbors of each copy (rows: 33-42). Then an edge is added between the node and its copy (row: 43). Another edge is added if the network is considered as directed: the edges between the original node and its copies are not directed so a second edge A,B and B,A is added (rows: 44-46). Finally the new edges are added to the edgeList and the loops begin again with a new copy, if it exists.
+#rgSim: for each simulation a weight vector is randomly created in between a range defined by the user. the number of simulation is also defined by the user. the input network is also defined by the user. it can be both directed and undirected
+#addEdges: starting from the network and a random vector, the edgelist is visited: for each node the algorithm performs a loop for each copy the node has: the node 1 has 0 copies: 0 loops, the node 4 has 3 copies: 3 loops. For each loop a new node is added and a new set of edges is created. First the algorithm finds the position of the original node in the edge list. This step permits to get the neighbors of the original node that will be neighbors of each copy (rows: 33-42). Then an edge is added between the node and its copy (row: 43). Another edge is added if the network is considered as directed: the edges between the original node and its copies are not directed so a second edge A,B and B,A is added (rows: 44-46). Finally the new edges are added to the edgeList and the loops begin again with a new copy, if it exists.
 
 addEdges <- function(network, weights, direction=FALSE){ #input: network, the weights and if the network is directed. default: undirected network
 
@@ -250,7 +244,7 @@ addEdgesWithNames <- function(network, weights, direction=FALSE){ #input: networ
 }
 
 
-centralityPos <- function(nNodes,weight){ #finding the position that correspond to a node and its copies in the centrality array
+centralityPos <- function(nNodes,weight){ #finding the position that correspond to a node and its copies in the centrality vector
 		
 	copies <- weight-1
 	maxval <- max(weight) #find the max multiplication factor (the maximal number of copies)
@@ -260,14 +254,14 @@ centralityPos <- function(nNodes,weight){ #finding the position that correspond 
 	for(i in copies){ #how many copies a node has?
 		whatSum <- rep(0,maxval)
 		if(i == 0){ #if the node has 0 copies the centrality is just itself
-			whatSum[1] <- pos #in pos[1] will put the position of the original node in the centrality array
+			whatSum[1] <- pos #in pos[1] will put the position of the original node in the centrality vector
 			pos <- pos + 1
 		}
 		else{ #otherwise it should sum the centralities of all the copies and the original
 			whatSum[1] <- pos #the pos[1] is always for the real position of the original node
 			for(j in 1:copies[pos]){ #then for the other copies
 				nNodes <- nNodes + 1 #copy j
-				whatSum[j+1] <- nNodes #add the position of the copy j to the array of this original node
+				whatSum[j+1] <- nNodes #add the position of the copy j to the vector of this original node
 			}
 			pos <- pos + 1 #go for the next node
 		}
@@ -278,7 +272,7 @@ centralityPos <- function(nNodes,weight){ #finding the position that correspond 
 
 centralitySum <- function(centralityTmp,weight){ #sum up the centralities (compute the centralities of the multiplied network in "centralityTmp") of each original node and its copies
 	
-	centrality <- rep(0,length(weight)) #the centrality array has the same lenght of the number of orignal nodes
+	centrality <- rep(0,length(weight)) #the centrality vector has the same lenght of the number of orignal nodes
 	tmp <- centralityPos(length(weight),weight) #computing the position of the centralities to sum for each original node
 	
 	for(i in 1:nrow(tmp)){ #for each row (a node)
@@ -294,20 +288,20 @@ centralitySum <- function(centralityTmp,weight){ #sum up the centralities (compu
 
 rgSim <- function(network, simulations, valMin, valMax, centrality="closeness", direction=FALSE){
 
-	weight <- array()
-	centralities <- array()
-	clo <- array()
-	betw <- array()
-	alpha <- array()
+	weight <- vector()
+	centralities <- vector()
+	clo <- vector()
+	betw <- vector()
+	alpha <- vector()
 	vertexes <- vcount(network)
-	meansClo <- array()
-	meansAlpha <- array()
-	meansBetw <- array()	
+	meansClo <- vector()
+	meansAlpha <- vector()
+	meansBetw <- vector()	
 	label <- c("closeness","alpha.centrality","betweenness")
 	results <- data.frame()
 		
 	if(all(centrality %in% label, na.rm=FALSE)){#if all the centralities are correctly typed then go on
-		for(i in 1:simulations){#for each simulation an array of random weights is generated
+		for(i in 1:simulations){#for each simulation an vector of random weights is generated
 			weight <- round(runif(vertexes,valMin,valMax)) #generates #vertexes weights within valMax and valMin
 			#add the new edges to the network and then compute the centralities
 			
@@ -344,9 +338,9 @@ rgSim <- function(network, simulations, valMin, valMax, centrality="closeness", 
 	#results <- c(mean(meansClo),mean(meansBetw),mean(meansAlpha))
 	row <- (length(V(network))*simulations)
 	results <- matrix(nrow=row,ncol=3)
-	if("closeness" %in% centrality){results[,1] <- t(clo[-1])}else{results[,1] <- t(array(0,row))}
-	if("alpha.centrality" %in% centrality){results[,2] <- t(alpha[-1])}else{results[,2] <- t(array(0,row))}
-	if("betweenness" %in% centrality){results[,3] <- t(betw[-1])}else{results[,3] <- t(array(0,row))}
+	if("closeness" %in% centrality){results[,1] <- t(clo[-1])}else{results[,1] <- t(vector(0,row))}
+	if("alpha.centrality" %in% centrality){results[,2] <- t(alpha[-1])}else{results[,2] <- t(vector(0,row))}
+	if("betweenness" %in% centrality){results[,3] <- t(betw[-1])}else{results[,3] <- t(vector(0,row))}
 	colnames(results) <- label
 	return(results)
 }
@@ -358,19 +352,6 @@ createWeights <- function(howmany,min,max){
 	weight <- round(runif(howmany,valMin,valMax)) #generates howmany weights within valMax and valMin
 	return(weight)
 }
-
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-
-##############
-# Gabriele T #
-# 29 07 2016 #
-##############
 
 #some utilities for network analysis
 
@@ -525,90 +506,3 @@ findTargetsWithoutSet <- function(contains, notContains, paths){
 	}
 	return(targetedPaths)
 }
-
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-#############################################################################################################
-
-#BCLL data va lanciato nella cartella /home/gabriele/Scrivania/progettoDottorato/datiGiustiLavoro/bcll/networks/attributi/ scegliendo se paziente o controllo!
-minmaxBCLL <- function(pattern){#pattern could be "controllo" or "paziente"
-
-	tmp <- list.files()[grepl(pattern,list.files())]
-	files <- tmp[grepl("attributes",list.files()[grepl(pattern,list.files())])]
-
-	min <- 1000000
-	max <- 0
-
-	for(i in files){
-		tmp <- read.table(i,header=TRUE)
-		for(j in tmp[,2]){
-			if(j <= min){
-				min <- j
-			}
-			if(j >= max){
-				max <- j
-			}
-		}
-	}
-	return(c(min,max))
-}
-
-#> minmaxBCLL("paziente")
-#[1] 1.000413 19.064090
-#> minmaxBCLL("controllo")
-#[1] 1.000216 14.247383
-
-#MI data va lanciato in ciascuna cartella H, F, N e U dove si trova il file *X_1000.xls
-minmaxMI <- function(file){
-
-	library("gdata")
-
-	#setwd("")
-
-	data <- read.xls(file)
-
-	min <- min(data[-1])
-	max <- max(data[-1])
-	
-	return(c(min,max))
-}
-
-#> minmaxMI("attributiFx1000.xls")
-#[1] 1.000000 7.100281
-#> minmaxMI("attributi_Hx1000.xls")
-#[1] 1.000000 7.410304
-#> minmaxMI("attributiUx1000.xls")
-#[1] 1.0000 13.2821
-#> minmaxMI("attributiNx1000.xls")
-#[1] 1.000 15.159
-
-
-#PET data va lanciato nella cartella /home/gabriele/Scrivania/progettoDottorato/datiGiustiLavoro/pancreas/attributiCorretto/attributiG*/
-minmaxPET <- function(path){
-
-	files <- list.files(path)[grepl("^attributo_",list.files(path))]
-	min <- 1000000
-	max <- 0
-
-	for(i in files){
-		tmp <- read.table(i,header=TRUE,sep=",")
-		for(j in tmp[,2]){
-			if(j <= min){
-				min <- j
-			}
-			if(j >= max){
-				max <- j
-			}
-		}
-	}
-	return(c(min,max))
-}
-
-#> minmaxPET("/home/gabriele/Scrivania/progettoDottorato/datiGiustiLavoro/pancreas/attributiCorretto/attributiG2/")
-#[1] 2.784654 12.112898
-#> minmaxPET("/home/gabriele/Scrivania/progettoDottorato/datiGiustiLavoro/pancreas/attributiCorretto/attributiG1/")
-#[1] 2.321069 12.556269
